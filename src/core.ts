@@ -64,17 +64,18 @@ export default function r2wc<Props, Context>(
   }
 
   class ReactWebComponent extends HTMLElement {
-    static get observedAttributes() {
-      return Object.keys(mapAttributeProp);
-    }
-
-    private connected = true;
+    private connected = false;
     private context?: Context;
     props: Props = {} as Props;
     container: HTMLElement;
+    observer: MutationObserver;
 
     constructor() {
       super();
+      this.observer = new MutationObserver((mutations) =>
+        this.attributesChanged(mutations)
+      );
+      this.observer.observe(this, { attributes: true });
 
       if (options.shadow) {
         this.container = this.attachShadow({
@@ -90,27 +91,26 @@ export default function r2wc<Props, Context>(
 
     connectedCallback() {
       this.connected = true;
-      this.render();
 
       for (const prop of propNames) {
         this.setProps(prop);
       }
 
-      this.update();
+      this.mount();
     }
 
     disconnectedCallback() {
       this.connected = false;
 
-      if (this.context) {
-        renderer.unmount(this.context);
-      }
+      this.unmount();
     }
 
-    attributeChangedCallback(attribute: Extract<keyof Props, string>) {
-      this.setProps(attribute);
+    private attributesChanged(mutations: MutationRecord[]) {
+      mutations.forEach(({ attributeName }) => {
+        this.setProps(attributeName as Extract<keyof Props, string>);
+      });
 
-      this.render();
+      this.update();
     }
 
     private setProps(prop: Extract<keyof Props, string>) {
@@ -125,7 +125,7 @@ export default function r2wc<Props, Context>(
       const value = reactProps[prop] ?? this.getAttribute(attribute);
       const type = propTypes[prop];
       const transform = transforms[type];
-      if (reactProps[prop]) {
+      if (prop in reactProps) {
         this.props[prop] = value;
       } else if (value && transform?.parse) {
         //@ts-ignore
@@ -133,24 +133,23 @@ export default function r2wc<Props, Context>(
       }
     }
 
-    private render() {
-      if (!this.connected) return;
-
-      if (!this.context) {
-        this.mount();
-      } else {
-        this.update();
-      }
-    }
-
     private update() {
+      if (!this.connected) return;
       if (!this.context) return;
 
       renderer.update(this.context, this.props);
     }
 
     private mount() {
+      if (!this.connected) throw new Error(`${ReactComponent} is not in a DOM`);
+      if (this.context) throw new Error(`${ReactComponent} is already mounted`);
+
       this.context = renderer.mount(this.container, ReactComponent, this.props);
+    }
+
+    private unmount() {
+      if (!this.context) return;
+      renderer.unmount(this.context);
     }
   }
 
