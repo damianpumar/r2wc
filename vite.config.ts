@@ -1,20 +1,17 @@
-import { resolve } from "path";
-import { defineConfig } from "Vite";
-import react from "@Vitejs/plugin-react";
-import typescript from "@rollup/plugin-typescript";
+import { defineConfig } from "vite";
+import dts from "vite-plugin-dts";
 
-export default defineConfig(() => ({
-  plugins: [react(), typescript()],
-  define: {
-    "process.env.NODE_ENV": '"production"',
-  },
+export default defineConfig({
   build: {
-    minify: false,
     lib: {
-      formats: ["es", "umd"],
-      entry: resolve(__dirname, "src/index.ts"),
+      entry: "src/index.ts",
+      formats: ["es", "cjs"],
       name: "index",
       fileName: (format) => `index.${format}.js`,
     },
+    rollupOptions: {
+      external: ["react", "react-dom"],
+    },
   },
-}));
+  plugins: [dts()],
+});
