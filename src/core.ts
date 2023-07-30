@@ -63,10 +63,14 @@ export default function r2wc<Props, Context>(
     mapAttributeProp[attribute] = prop;
   }
 
+  type PropsInContainer = Props & {
+    container: HTMLElement;
+  };
+
   class ReactWebComponent extends HTMLElement {
     private connected = false;
     private context?: Context;
-    props: Props = {} as Props;
+    private _props = {} as PropsInContainer;
     container: HTMLElement;
     observer: MutationObserver;
 
@@ -85,8 +89,20 @@ export default function r2wc<Props, Context>(
         this.container = this;
       }
 
-      // @ts-ignore: There won't always be a container in the definition
-      this.props.container = this.container;
+      this._props.container = this.container;
+    }
+
+    public set props(newValue: Props) {
+      this._props = {
+        ...this._props,
+        ...newValue,
+      };
+
+      this.update();
+    }
+
+    public get props(): Props {
+      return this._props;
     }
 
     connectedCallback() {
@@ -102,6 +118,7 @@ export default function r2wc<Props, Context>(
     disconnectedCallback() {
       this.connected = false;
 
+      this.observer.disconnect();
       this.unmount();
     }
 
@@ -126,10 +143,10 @@ export default function r2wc<Props, Context>(
       const type = propTypes[prop];
       const transform = transforms[type];
       if (prop in reactProps) {
-        this.props[prop] = value;
+        this._props[prop] = value;
       } else if (value && transform?.parse) {
         //@ts-ignore
-        this.props[prop] = transform.parse(value, this);
+        this._props[prop] = transform.parse(value, this);
       }
     }
 
