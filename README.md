@@ -30,10 +30,6 @@ Now we can use `<web-greeting>` like any other HTML element!
 </body>
 ```
 
-Note that by using React 18, `r2wc` will use the new root API. If your application needs the legacy API, please use React 17
-
-In the above case, the web-greeting custom element is not making use of the `name` property from our `Greeting` component.
-
 ## Working with Attributes
 
 By default, custom elements created by `r2wc` only pass properties to the underlying React component. To make attributes work, you must specify your component's props.
@@ -61,6 +57,95 @@ as follows:
 </body>
 ```
 
+## Working with complex attributes and functions callback
+
+#### React component
+
+```jsx
+const component = r2wc(App, {
+  props: {
+    onCountUpdated: "function",
+    title: "string",
+    complex: "json",
+  },
+});
+customElements.define("app-component", component);
+```
+
+#### React consumer
+
+```jsx
+function App() {
+  useScript("http://localhost:3000/index.es.js");
+
+  const [count, setCount] = useState(0);
+  const func = (count: number) => {
+    setCount(count);
+  };
+  const [title, setTitle] = useState("");
+  const [complex, setComplex] = useState({
+    name: "",
+    value: "",
+  });
+
+  useEffect(() => {
+    setTitle(count % 2 === 0 ? "Foo" : "Bar");
+    setComplex({
+      name: `Counter is: ${count}`,
+      value: `Value: ${count}`,
+    });
+  }, [count]);
+
+  return (
+    <>
+      <h2>Consumer</h2>
+      <app-component
+        onCountUpdated={func}
+        title={title}
+        complex={complex}
+      ></app-component>
+    </>
+  );
+}
+```
+
+#### Vanilla js
+
+```html
+<body>
+  <div id="root">
+    <h2>Consumer</h2>
+    <app-component
+      id="app"
+      on-count-updated="onUpdated"
+      title=""
+      complex="{}"
+    ></app-component>
+  </div>
+
+  <script>
+    window.onload = () => {
+      onUpdated(0);
+    };
+
+    const app = document.getElementById("app");
+
+    function onUpdated(count) {
+      console.log(count);
+
+      app.props = {
+        title: count % 2 === 0 ? "Foo" : "Bar",
+        complex: {
+          name: `Counter is: ${count}`,
+          value: `Value: ${count}`,
+        },
+      };
+    }
+  </script>
+  <script src="http://localhost:3000/index.es.js"></script>
+</body>
+```
+
 ## Setup 🔨
 
 To install from npm:
@@ -80,3 +165,7 @@ Based on https://github.com/bitovi/react-to-web-component
 ## License ⚖️
 
 [MIT](https://choosealicense.com/licenses/mit/)
+
+```
+
+```
