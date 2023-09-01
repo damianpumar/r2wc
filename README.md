@@ -165,7 +165,3 @@ Based on https://github.com/bitovi/react-to-web-component
 ## License ⚖️
 
 [MIT](https://choosealicense.com/licenses/mit/)
-
-```
-
-```
